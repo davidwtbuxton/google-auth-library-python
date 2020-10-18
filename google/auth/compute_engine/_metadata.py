@@ -239,7 +239,7 @@ def get_service_account_info(request, service_account="default"):
     return get(request, path, params={"recursive": "true"})
 
 
-def get_service_account_token(request, service_account="default"):
+def get_service_account_token(request, service_account="default", scopes=None):
     """Get the OAuth 2.0 access token for a service account.
 
     Args:
@@ -248,7 +248,8 @@ def get_service_account_token(request, service_account="default"):
         service_account (str): The string 'default' or a service account email
             address. The determines which service account for which to acquire
             an access token.
-
+        scopes (Optional[Union[str, List[str]]]): Optional string or list of
+            strings with auth scopes.
     Returns:
         Union[str, datetime]: The access token and its expiration.
 
@@ -256,9 +257,15 @@ def get_service_account_token(request, service_account="default"):
         google.auth.exceptions.TransportError: if an error occurred while
             retrieving metadata.
     """
-    token_json = get(
-        request, "instance/service-accounts/{0}/token".format(service_account)
-    )
+    if scopes:
+        if not isinstance(scopes, str):
+            scopes = ",".join(scopes)
+        params = {"scopes": scopes}
+    else:
+        params = None
+
+    path = "instance/service-accounts/{0}/token".format(service_account)
+    token_json = get(request, path, params=params)
     token_expiry = _helpers.utcnow() + datetime.timedelta(
         seconds=token_json["expires_in"]
     )
